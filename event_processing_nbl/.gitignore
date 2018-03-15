@@ -1,0 +1,24 @@
+# package
+*.class
+*.jar
+*.war
+*.ear
+
+# ide
+.classpath
+.settings/
+.project
+.DS_Store
+.idea
+*.iml
+*.launch
+
+# build
+target/
+tomcat.*/
+test-output/
+do_not_git_version/
+
+# tools
+src/main/resources/rebel.xml
+atlassian-ide-plugin.xml

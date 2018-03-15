@@ -1,0 +1,38 @@
+The problems found
+
+1) ShippingProcessor was returning MarginEvent so it wouldn't let the tests pass as no processor is interested in Margin
+objects and they won't generate two additional events which we do need for required unit tests.
+2) There was a subtle mistake in the shippingEventShouldTriggerOnly2Processors test:
+//this was incorrectly set to 50 so I had to fix to
+assertEquals(25, re2.getRiskValue(), 0.01);
+due to calculateShippingRisk: 500X0.05=25
+
+//this was incorrectly set to 10 so I had to fix to
+assertEquals(5, me2.getMargin(), 0.01);
+due to calculateShippingMargin: 500X0.01=5
+
+Some thoughts...
+
+
+Nevertheless, there are couple issues this application may have should certain things goes wrong:
+1) If for some reason one of the processors takes too long to process, or actually times out with failure,
+and it is acceptable in this case to rather skip update from this processor or fail the whole composite event,
+then I would attach to the Orchestrator some kind of caching mechanism which would check every initiator event after
+certain preconfigured amount of time and if the event is still in the map and not deleted yet, then it would
+publish it and delete it. Otherwise eventually the map will grow and will cause memory overflow.
+Alternatively it could save it to file and delete from map, so if that processors sends an event later
+and we receive processed event without having a key in the map we can look up file for it's composite object.
+
+This can be achieved by leveraging DelayQueue, so every time we put composite to map we put a job to the queue.
+On the runner thread, we call cleanUpQueue.take() which returns oldest job first and we do housekeeping job like
+deleting record from map or publishing unfinished event etc. Of course we would need to use some kind of reeentrant locking
+mechanism here so that when we accidentally delete at the same time if the lock already acquired by Orchestrator itself, we just give up.
+But again, to keep things simpler I skipped this implementation but just leaving this comment so you know I bear it in mind.
+
+2) with very high amount of received events we may face same memory problem, this time it won't "leak" though
+but simply overflow because of the number of requests. What we can do is calculate the amount of memory the app will
+consume and number of elements in the map which we can cope with, and then, once the threshold is reached we can put
+initiator events to rejected file to process later, when the load is lower.
+
+
+
