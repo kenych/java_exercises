@@ -1,0 +1,20 @@
+
+The code is written in the concurrent way, assuming finding a match potentially in real
+world scenario could be time consuming, although in a given test I believe it doesn't have 
+a difference if ran by single thread.
+
+Also, MatchingEngine uses generic criteria, which means, if it was not a Bet implementing
+criteria method in Matching interface, but let's say, dating application, then
+we would have Men and Woman instead of Back/Lay and Human instead of Bet, and criteria in Human 
+class would be implemented in a way that people can find each other by certain criteria, like
+age, hobby, etc.
+
+Please note as the algorithm is lock free and doesn't use any locking to synchronise when back and lay bets are
+added, it might happen that one side will be in the middle of the pair search when the other side will be in the middle
+of adding itself to the lonely queue, that is right after pair search failed and just before it joins lonely queue.
+In such case non of them will find each other and both will end up in lonely queue.
+As this might only happen when jobs are run in a concurrent way, we pick up all unhappy
+pairs, put them back to the queue, then run the job sequentially just for few unlucky pairs so they can meet each other.
+That is the implemented in the cleanUp method.
+
+Kayan Azimov.
